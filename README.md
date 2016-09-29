@@ -1,7 +1,7 @@
 # Lo0sR-Keylogger
 Lo0sR is a simple python Keylogger
 
-<strong>Availabel Features: </strong><br>
+<strong>Available Features: </strong><br>
 1. Of course Keylogging<br>
 2. Takes Pictures with Webcam<br>
 3. Screenshotting<br>
