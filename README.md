@@ -1,4 +1,4 @@
-# Lo0sR-Keylogger
+# Lo0sR
 Lo0sR is a simple python Keylogger
 
 <strong>Available Features: </strong><br>
