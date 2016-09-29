@@ -13,3 +13,9 @@ Lo0sR is a simple python Keylogger
 <strong>Upcoming Features: </strong><br>
 1. Dump all stored Passwords for more Browsers (Internet Explorer, etc.)<br>
 2. Hide Folder<br>
+
+<strong>Requirements: </strong><br>
+1. <a href="https://sourceforge.net/projects/pyhook/">PyHook</a><br>
+2. Pythoncom<br>
+3. Mimetypes<br>
+4. Videocapture<br>
