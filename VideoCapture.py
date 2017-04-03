@@ -47,8 +47,8 @@ class Device:
 
         """
         self.dev = vidcap.new_Dev(devnum, showVideoWindow)
-        self.normalfont = ImageFont.load_path('helvetica-10.pil')
-        self.boldfont = ImageFont.load_path('helvB08.pil')
+        #self.normalfont = ImageFont.load_path('helvetica-10.pil')
+        #self.boldfont = ImageFont.load_path('helvB08.pil')
         self.font = None
 
     def displayPropertyPage(self):
