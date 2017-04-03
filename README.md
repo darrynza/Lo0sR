@@ -8,6 +8,7 @@ Lo0sR is a simple python Keylogger
 4. If CTRL-C copies what is being copied<br>
 5. Dumps all passwords stored in Chrome<br>
 6. Sends Mail every 5 min with all the gathered data (The Keylogger deletes all alredy sent data)<br>
+7. Moves itself to Startup<br>
 
 
 <strong>Upcoming Features: </strong><br>
