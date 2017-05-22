@@ -10,11 +10,13 @@ Lo0sR is a simple python Keylogger
 6. Dumps Chrome History<br>
 7. Sends Mail every 5 min with all the gathered data (The Keylogger deletes all alredy sent data)<br>
 8. Moves itself to Startup<br>
+9. Gets Windowname that is currently being used<br>
+10. Hides Folder<br>
+11. If Skype is installed: gets all Personal Information from Skype DB<br> 
 
 
 <strong>Upcoming Features: </strong><br>
 1. Dump all stored Passwords for more Browsers (Internet Explorer, etc.)<br>
-2. Hide Folder<br>
 
 <strong>Requirements: </strong><br>
 1. <a href="https://sourceforge.net/projects/pyhook/">PyHook</a><br>
