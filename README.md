@@ -17,12 +17,7 @@ Lo0sR is a simple python Keylogger
 
 <strong>Upcoming Features: </strong><br>
 1. Dump all stored Passwords for more Browsers (Internet Explorer, etc.)<br>
-9. Hides all Output Files in a hidden folder<br>
-
-
-<strong>Upcoming Features: </strong><br>
-1. Infect USB stick if a usb stick is plugged in<br>
-2. Dump stored Passwords for more Browsers (Internet Explorer, etc.)<br>
+2. Infect USB stick if a usb stick is plugged in<br>
 
 <strong>Requirements: </strong><br>
 1. <a href="https://sourceforge.net/projects/pyhook/">PyHook</a><br>
